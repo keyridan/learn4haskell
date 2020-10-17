@@ -71,7 +71,7 @@ Modules should have the same name as the corresponding file with
 the `.hs` extension.
 -}
 module Chapter1 where
-import Data.List
+import Data.List (sort)
 {- |
 In Haskell, we have __expressions__. Expressions can be represented by some
 primitive values (numbers: 1, 100; characters: 'a', 'z'; booleans: True, False;
@@ -633,9 +633,9 @@ specifying complex expressions.
 -}
 sumLast2 :: Int -> Int
 sumLast2 n =
-    let (withoutLast, last) = abs n `divMod` 10
+    let (withoutLast, lastOne) = abs n `divMod` 10
         secondToLast = withoutLast `mod` 10
-    in secondToLast + last
+    in secondToLast + lastOne
 
 {- |
 =💣= Task 10*
