@@ -862,10 +862,13 @@ list.
 🕯 HINT: Use the 'cycle' function
 -}
 rotate :: Int -> [a] -> [a]
-rotate n xs 
-    |n < 0 = []
-    |otherwise = subList n to (cycle xs)
-    where to = length xs + n - 1
+rotate n xs
+  | len == 0 || n < 0 = []
+  | otherwise = subList newN to (cycle xs)
+  where 
+    len = length xs 
+    newN = n `mod` len
+    to = len + newN - 1
 
 {- |
 =💣= Task 12*
@@ -882,9 +885,11 @@ and reverses it.
   cheating!
 -}
 rewind :: [a] -> [a]
-rewind [] = []
-rewind (x:xs) = rewind xs ++ [x]
-
+rewind = go []
+  where
+    go :: [a] -> [a] -> [a]
+    go acc [] = acc
+    go acc (x:xs) = go (x:acc) xs
 
 {-
 You did it! Now it is time to open pull request with your changes
