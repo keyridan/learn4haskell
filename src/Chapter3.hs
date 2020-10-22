@@ -49,7 +49,7 @@ In this module, we enable the "InstanceSigs" feature that allows writing type
 signatures in places where you can't by default. We believe it's helpful to
 provide more top-level type signatures, especially when learning Haskell.
 -}
-{-# LANGUAGE InstanceSigs, MultiParamTypeClasses, UndecidableSuperClasses, FunctionalDependencies #-}
+{-# LANGUAGE InstanceSigs, MultiParamTypeClasses #-}
 
 module Chapter3 where
 
