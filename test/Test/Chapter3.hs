@@ -19,12 +19,12 @@ chapter3normal = describe "Chapter3Normal" $ do
         it "fight when knight wins" $ fight (Knight 2 2 2) (Monster 1 1 1) `shouldBe` 3        
         it "fight when nobody wins" $ fight (Knight 5 1 2) (Monster 5 1 1) `shouldBe` 2
     describe "Task2: fightToDeath" $ do
-        it "fight when warrior loses" $ fightToDeath (Warrior 1 1 1) (Monster 2 2 2) `shouldBe` DeadWarrior
-        it "fight when warrior wins" $ fightToDeath (Warrior 2 2 2) (Monster 1 1 1) `shouldBe` (Warrior 2 2 3) 
-        it "fight when warrior wins" $ fightToDeath (Warrior 500 1 2) (Monster 499 1 1) `shouldBe` (Warrior 2 1 3) 
-        it "fight when monster attacks dead warrior" $ fightToDeath DeadWarrior (Monster 1 1 1) `shouldBe` DeadWarrior 
-        it "fight when monster attacks dead warrior" $ fightToDeath (Warrior 0 500 2) (Monster 1 1 1) `shouldBe` DeadWarrior 
-        it "fight when warrior has negative health" $ fightToDeath (Warrior (-1) 500 2) (Monster 1 1 1) `shouldBe` DeadWarrior 
+        it "fight when warrior loses" $ AliveHero(Knight 1 1 1) `fightToDeath` (Monster 2 2 2) `shouldBe` DeadHero
+        it "fight when warrior wins" $ AliveHero(Knight 2 2 2) `fightToDeath` (Monster 1 1 1) `shouldBe` (AliveHero (Knight 2 2 3)) 
+        it "fight when warrior wins" $ AliveHero(Knight 500 1 2) `fightToDeath` (Monster 499 1 1) `shouldBe` (AliveHero (Knight 2 1 3)) 
+        it "fight when monster attacks dead warrior" $ DeadHero `fightToDeath` (Monster 1 1 1) `shouldBe` DeadHero 
+        it "fight when monster attacks dead warrior" $ AliveHero(Knight 0 500 2) `fightToDeath` (Monster 1 1 1) `shouldBe` DeadHero 
+        it "fight when warrior has negative health" $ AliveHero(Knight (-1) 500 2) `fightToDeath` (Monster 1 1 1) `shouldBe` DeadHero 
     describe "Task4: recreateCastleWith" $ do
         it "recreateCastle when none" $ recreateCastleWith None "smallOne" `shouldBe` (Castle "smallOne")
         it "recreateCastle when small one exists" $ recreateCastleWith (Castle "smallOne") "biggerOne" `shouldBe` (Castle "biggerOne")
@@ -73,48 +73,48 @@ cityWith10PeopleButNoCastle = cityWith10People{cityCastle = None}
 chapter3Advanced :: Spec
 chapter3Advanced = describe "Chapter3Advanced" $ do
     describe "Task9: boss fight actions" $ do
-        it "knight takes potion" $ perform drinkHugePotion attackingKnight attackingKnight `shouldBe` (attackingKnightWithLotsOfHealth, attackingKnight)
-        it "knight attacks knight" $ perform KnightAttack attackingKnight attackingKnightWithLotsOfHealth `shouldBe` (attackingKnight, setHealth attackingKnightWithLotsOfHealth (Health(499)))
-        it "knight kills knight" $ perform KnightAttack attackingKnight attackingKnight `shouldBe` (attackingKnight, DeadKnight)
-        it "knight attacks monster" $ perform KnightAttack attackingKnight angryMonsterWithLotOfHealth `shouldBe` (attackingKnight, setHealth angryMonsterWithLotOfHealth (Health(498)))
-        it "monster attacks knight" $ perform MonsterAttack angryMonster attackingKnightWithLotsOfHealth `shouldBe` (angryMonster, setHealth attackingKnightWithLotsOfHealth (Health(499)))
-        it "monster kills knight" $ perform MonsterAttack angryMonster attackingKnight `shouldBe` (angryMonster, DeadKnight)
+        it "knight takes potion" $ perform drinkHugePotion knight knight `shouldBe` (knightWithLotsOfHealth, knight)
+        it "knight attacks knight" $ perform KnightAttack knight knightWithLotsOfHealth `shouldBe` (knight, setHealth knightWithLotsOfHealth (Health(499)))
+        it "knight kills knight" $ perform KnightAttack knight knight `shouldBe` (knight, DeadKnight)
+        it "knight attacks monster" $ perform KnightAttack knight monsterWithLotOfHealth `shouldBe` (knight, setHealth monsterWithLotOfHealth (Health(498)))
+        it "monster attacks knight" $ perform MonsterAttack monster knightWithLotsOfHealth `shouldBe` (monster, setHealth knightWithLotsOfHealth (Health(499)))
+        it "monster kills knight" $ perform MonsterAttack monster knight `shouldBe` (monster, DeadKnight)
     describe "Task9: boss fight" $ do
-        it "knight with potions wins" $ (knight whoDrinksPotionAndAttack) `battle` attackingKnightWithLotsOfHealth `shouldBe` (setHealth (knight whoDrinksPotionAndAttack) (Health(2)), DeadKnight)
-        it "knight with spell wins" $ (knight whoCastsSpellAndAttack) `battle` attackingKnightWithLotsOfHealth `shouldBe` ((knight whoCastsSpellAndAttack){holyKnightDefence = (Defence(501))}, DeadKnight)
-        it "knight with escaped monster" $ (knight whoDrinksHugePotionAndAttack) `battle` scaredMonster `shouldBe` ((knightWithLotsOfHealth whoDrinksHugePotionAndAttack), EscapedMonster)
-        it "knight against monster" $ attackingKnight `battle` angryMonster `shouldBe` (attackingKnight, DeadMonster)
-        it "monster against knight" $ angryMonster `battle` attackingKnight `shouldBe` (angryMonster, DeadKnight)
-        it "monster runs from monster with lots of health" $ scaredMonster `battle` attackingKnightWithLotsOfHealth `shouldBe` (EscapedMonster, attackingKnightWithLotsOfHealth)
-        it "monster dies from monster with lots of health" $ angryMonster `battle` angryMonsterWithLotOfHealth `shouldBe` (DeadMonster, setHealth (angryMonsterWithLotOfHealth) (Health(498)))
-        it "dead knight against monster" $ DeadKnight `battle` angryMonster `shouldBe` (DeadKnight, angryMonster)
-        it "dead monster against knight" $ DeadMonster `battle` attackingKnight `shouldBe` (DeadMonster, attackingKnight)
-        it "no battle if knight has no actions" $ (knight []) `battle` angryMonster `shouldBe` ((knight []), angryMonster)
-        it "no battle if monster has no actions" $ attackingKnight `battle` (monster []) `shouldBe` (attackingKnight, (monster []))
+        it "knight with potions wins" $ battle knight whoDrinksPotionAndAttack knightWithLotsOfHealth whoAttacks `shouldBe` (setHealth knight (Health(2)), DeadKnight)
+        it "knight with spell wins" $ battle knight whoCastsSpellAndAttack knightWithLotsOfHealth whoAttacks `shouldBe` (knightWithLotsOfDefence, DeadKnight)
+        it "knight with escaped monster" $ battle knight whoDrinksHugePotionAndAttack monster whoScared `shouldBe` (knightWithLotsOfHealth, EscapedMonster)
+        it "knight against monster" $ battle knight whoAttacks monster whoAlwaysAttacks `shouldBe` (knight, DeadMonster)
+        it "monster against knight" $ battle monster whoAlwaysAttacks knight whoAttacks `shouldBe` (monster, DeadKnight)
+        it "monster runs from monster with lots of health" $ battle monster whoScared knightWithLotsOfHealth whoAttacks `shouldBe` (EscapedMonster, knightWithLotsOfHealth)
+        it "monster dies from monster with lots of health" $ battle monster whoAlwaysAttacks monsterWithLotOfHealth whoAlwaysAttacks `shouldBe` (DeadMonster, setHealth (monsterWithLotOfHealth) (Health(498)))
+        it "dead knight against monster" $ battle DeadKnight whoAttacks monster whoAlwaysAttacks `shouldBe` (DeadKnight, monster)
+        it "dead monster against knight" $ battle DeadMonster whoAlwaysAttacks knight whoAttacks `shouldBe` (DeadMonster, knight)
+        it "no battle if knight has no actions" $ battle knight ([]::[KnightAction]) monster whoAlwaysAttacks `shouldBe` (knight, monster)
+        it "no battle if monster has no actions" $ battle knight whoAttacks monster ([]::[MonsterAction]) `shouldBe` (knight, monster)
 
-knight :: [KnightAction] -> Knight'
-knight = HolyKnight (Health(1)) (Attack(2)) (Defence(1))
+knight :: Knight'
+knight = AliveKnight (HolyKnight (Health(1)) (Attack(2)) (Defence(1)))
 
-knightWithLotsOfHealth :: [KnightAction] -> Knight'
-knightWithLotsOfHealth = HolyKnight (Health(500)) (Attack(2)) (Defence(1))
+knightWithLotsOfHealth :: Knight'
+knightWithLotsOfHealth = AliveKnight (HolyKnight (Health(500)) (Attack(2)) (Defence(1)))
 
-attackingKnight :: Knight'
-attackingKnight = knight [KnightAttack]
+knightWithLotsOfDefence :: Knight'
+knightWithLotsOfDefence = AliveKnight (HolyKnight (Health(1)) (Attack(2)) (Defence(501)))
 
-attackingKnightWithLotsOfHealth :: Knight'
-attackingKnightWithLotsOfHealth = knightWithLotsOfHealth [KnightAttack]
+whoAttacks :: [KnightAction]
+whoAttacks = [KnightAttack]
 
-monster :: [MonsterAction] -> Monster'
-monster = BloodyMonster (Health(1)) (Attack(2)) 
+monster :: Monster'
+monster = AliveMonster (BloodyMonster (Health(1)) (Attack(2)))
 
-angryMonster :: Monster'
-angryMonster = monster [MonsterAttack]
+whoAlwaysAttacks :: [MonsterAction]
+whoAlwaysAttacks = [MonsterAttack]
 
-scaredMonster :: Monster'
-scaredMonster = monster [Run]
+whoScared :: [MonsterAction]
+whoScared = [Run]
 
-angryMonsterWithLotOfHealth :: Monster'
-angryMonsterWithLotOfHealth = BloodyMonster (Health(500)) (Attack(2)) [MonsterAttack]
+monsterWithLotOfHealth :: Monster'
+monsterWithLotOfHealth = AliveMonster (BloodyMonster (Health(500)) (Attack(2)))
 
 drinkPotion :: KnightAction
 drinkPotion = (DrinkPotion(Health(2)))

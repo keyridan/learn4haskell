@@ -383,13 +383,13 @@ data Knight = Knight
     { knightHealth :: Int
     , knightAttack :: Int
     , knightGold :: Int
-    } deriving (Show)
+    } deriving (Eq, Show)
 
 data Monster = Monster
     { monsterHealth :: Int
     , monsterAttack :: Int
     , monsterGold :: Int
-    } deriving (Show)
+    } deriving (Eq, Show)
 
 fight :: Knight -> Monster -> Int
 fight knight monster
@@ -475,32 +475,23 @@ concept of product types and sum types is called __Algebraic Data Type__. They
 allow you to model your domain precisely, make illegal states unrepresentable
 and provide more flexibility when working with data types.
 -}
-data Hero 
-    = DeadWarrior 
-    | Warrior
-      { warriorHealth :: Int
-      , warriorAttack :: Int
-      , warriorGold :: Int
-      } deriving (Eq, Show)
+data Hero
+    = DeadHero
+    | AliveHero Knight deriving (Eq, Show)
 
 fightToDeath :: Hero -> Monster -> Hero
-fightToDeath = heroTurn
+fightToDeath DeadHero _ = DeadHero
+fightToDeath (AliveHero knight) monster
+    | knightHealth knight <= 0 = DeadHero
+    | otherwise = round knight monster
     where
-      heroTurn :: Hero -> Monster -> Hero
-      heroTurn DeadWarrior _ = DeadWarrior
-      heroTurn warrior@(Warrior heroHealth attack gold) monster@(Monster health _ enemyGold)
-          | heroHealth <= 0 = DeadWarrior
-          | healthDiff > 0 = warrior `enemyTurn` (monster {monsterHealth = healthDiff})
-          | otherwise = warrior {warriorGold = gold + enemyGold}
-          where healthDiff = health - attack
-
-      enemyTurn :: Hero -> Monster -> Hero
-      enemyTurn DeadWarrior _ = DeadWarrior
-      enemyTurn (Warrior 0 _ _) _ = DeadWarrior
-      enemyTurn warrior@(Warrior health _ _) monster@(Monster _ attack _)
-          | healthDiff > 0 = (warrior {warriorHealth = healthDiff}) `heroTurn` monster
-          | otherwise = DeadWarrior
-          where healthDiff = health - attack
+      round :: Knight -> Monster -> Hero
+      round knight monster
+          | newMonsterHealth <= 0 = AliveHero knight {knightGold = knightGold knight + monsterGold monster}
+          | newKnightHealth <= 0 = DeadHero
+          | otherwise = round knight{knightHealth = newKnightHealth} monster{monsterHealth = newMonsterHealth}
+          where newMonsterHealth = monsterHealth monster - knightAttack knight
+                newKnightHealth = knightHealth knight - monsterAttack monster
 
 {- |
 =⚔️= Task 3
@@ -569,7 +560,7 @@ hasAtLeastNPeople city n = cityHouses city `hasPeople` 0
       hasPeople [] _ = False    
       hasPeople (x:xs) acc = 
         let newAcc = acc + countPeople x
-        in if newAcc >= n then True else xs `hasPeople` newAcc  
+        in newAcc >= n || xs `hasPeople` newAcc
  
 buildWalls :: City -> City
 buildWalls city = case cityCastle city of
@@ -655,7 +646,7 @@ introducing extra newtypes.
 🕯 HINT: if you complete this task properly, you don't need to change the
     implementation of the "hitPlayer" function at all!
 -}
-newtype Health = Health Int deriving (Eq, Show)
+newtype Health = Health Int deriving (Eq, Show, Ord)
 newtype Armor = Armor Int deriving (Eq, Show)
 newtype Attack = Attack Int deriving (Eq, Show)
 newtype Dexterity = Dexterity Int deriving (Eq, Show)
@@ -1155,30 +1146,31 @@ Implement data types and typeclasses, describing such a battle between two
 contestants, and write a function that decides the outcome of a fight!
 -}
 
-class FightAction action fighter => Fighter fighter action | fighter -> action where
+class Fighter fighter where
     health :: fighter -> Health
     attack :: fighter -> Attack
-    actions :: fighter -> [action]
     setHealth :: fighter -> Health -> fighter
     isDead :: fighter -> Bool
+    isDead fighter = ((health fighter) <= zeroHealth)
     takeDamage :: fighter -> Attack -> fighter
     takeDamage fighter attack = setHealth fighter (calculateAttack (health fighter) attack)
+    dead :: fighter -> fighter
 
-class Fighter fighter action => FightAction action fighter where
-    perform :: (Fighter f a) => action -> fighter -> f -> (fighter, f)
+class Fighter fighter => FightAction action fighter where
+    perform :: (Fighter f) => action -> fighter -> f -> (fighter, f)
 
 data KnightAction = KnightAttack | DrinkPotion Health | CastSpell Defence deriving (Eq, Show)
 data MonsterAction = MonsterAttack | Run deriving (Eq, Show)
 
 instance FightAction KnightAction Knight' where
-    perform :: (Fighter f a) => KnightAction -> Knight' -> f -> (Knight', f)
+    perform :: (Fighter f) => KnightAction -> Knight' -> f -> (Knight', f)
     perform action knight fighter = case action of
         KnightAttack -> (knight, takeDamage fighter (attack knight))
         (DrinkPotion health) -> (addHealth knight health, fighter)
         (CastSpell defence) -> (addDefence knight defence, fighter)
 
 instance FightAction MonsterAction Monster' where
-    perform :: (Fighter f a) => MonsterAction -> Monster' -> f -> (Monster', f)
+    perform :: (Fighter f) => MonsterAction -> Monster' -> f -> (Monster', f)
     perform action monster fighter = case action of
         MonsterAttack -> (monster, takeDamage fighter (attack monster))
         Run -> (EscapedMonster, fighter)
@@ -1194,8 +1186,11 @@ addHealth knight h = setHealth knight newValue
     where newValue = calculateHealth (health knight) h
 
 addDefence :: Knight' -> Defence -> Knight'
-addDefence knight@(HolyKnight _ _ defence _) add = knight{holyKnightDefence = calculateDefence defence add}
+addDefence (AliveKnight knight) addValue = increaseDefence knight addValue
 addDefence knight _ = knight
+
+increaseDefence :: HolyKnight -> Defence -> Knight'
+increaseDefence knight@(HolyKnight _ _ defence) add = AliveKnight(knight{holyKnightDefence = calculateDefence defence add}) 
 
 calculateAttack :: Health -> Attack -> Health
 calculateAttack (Health health) (Attack attack) = Health (health - attack)
@@ -1205,76 +1200,73 @@ calculateAttackWithDefence sameHealth@(Health health) (Defence defence) (Attack 
     | defence >= attack = sameHealth
     | otherwise = Health (health + defence - attack)
 
-data Knight' = HolyKnight
+calculateDamageForKnight :: HolyKnight -> Attack -> Health
+calculateDamageForKnight knight@(HolyKnight health _ defence) attack = calculateAttackWithDefence health defence attack
+
+data HolyKnight = HolyKnight
     { holyKnightHealth :: Health
     , holyKnightAttack :: Attack
     , holyKnightDefence :: Defence
-    , holyKnightActions :: [KnightAction]
-    } | DeadKnight deriving (Show, Eq)
+    } deriving (Show, Eq)
 
-instance Fighter Knight' KnightAction where
-    health (HolyKnight health _ _ _) = health
+data Knight' = DeadKnight | AliveKnight HolyKnight deriving (Show, Eq)
+
+instance Fighter Knight' where
+    health (AliveKnight knight) = holyKnightHealth knight
     health _ = Health(0)
 
-    attack (HolyKnight _ attack _ _) = attack
+    attack (AliveKnight knight) = holyKnightAttack knight
     attack _ = Attack(0)
 
-    actions (HolyKnight _ _ _ actions) = actions
-    actions _ = []::[KnightAction]
-
-    setHealth knight@(HolyKnight (Health health) _ _ _) (Health newValue)
-        | health <= 0 || newValue <= 0 = DeadKnight
-        | otherwise = knight{holyKnightHealth = Health(newValue)}
+    setHealth fighter@(AliveKnight knight) newHealthValue
+        | isDead fighter || newHealthValue <= zeroHealth = dead fighter
+        | otherwise = AliveKnight(knight {holyKnightHealth = newHealthValue})
     setHealth knight _ = knight
 
-    isDead (HolyKnight (Health health) _ _ _) = if health > 0 then False else True
-    isDead _ = True
-
-    takeDamage fighter@(HolyKnight health _ defence _) attack = setHealth fighter (calculateAttackWithDefence health defence attack)
+    takeDamage fighter@(AliveKnight knight) attack = setHealth fighter (calculateDamageForKnight knight attack)
     takeDamage fighter _ = fighter
+    
+    dead _ = DeadKnight
 
-data Monster' = BloodyMonster
+data BloodyMonster = BloodyMonster
     { bloodyMonsterHealth :: Health
     , bloodyMonsterAttack :: Attack
-    , bloodyMonsterActions :: [MonsterAction]
-    } | DeadMonster | EscapedMonster deriving (Show, Eq)
+    } deriving (Show, Eq)
 
-instance Fighter Monster' MonsterAction where
-    health (BloodyMonster health _ _) = health
-    health _ = Health(0)
+data Monster' = AliveMonster BloodyMonster | DeadMonster | EscapedMonster deriving (Show, Eq)
 
-    attack (BloodyMonster _ attack _)= attack
+zeroHealth :: Health
+zeroHealth = Health(0)
+
+instance Fighter Monster' where
+    health (AliveMonster monster) = bloodyMonsterHealth monster
+    health _ = zeroHealth
+
+    attack (AliveMonster monster) = bloodyMonsterAttack monster
     attack _ = Attack(0)
 
-    actions (BloodyMonster _ _ actions) = actions
-    actions _ = []::[MonsterAction]
-
-    setHealth monster@(BloodyMonster (Health health) _ _) newHealth@(Health newValue)
-        | health > 0 && newValue > 0 = monster{bloodyMonsterHealth = newHealth}
-        | otherwise = DeadMonster
+    setHealth fighter@(AliveMonster monster) newValue
+        | isDead fighter || newValue <= zeroHealth =  DeadMonster
+        | otherwise = AliveMonster(monster{bloodyMonsterHealth = newValue})
     setHealth monster _ = monster
+    
+    dead _ = DeadMonster
 
-    isDead (BloodyMonster (Health health) _ _) = if health > 0 then False else True
-    isDead _ = True
-
-battle :: (Fighter fighter1 a1, Fighter fighter2 a2) => fighter1 -> fighter2 -> (fighter1, fighter2)
-battle f1 f2
-    | [] <- actions1 = (f1, f2)
-    | [] <- actions2 = (f1, f2)
-    | otherwise = fighterAct (cycle actions1) f1 f2 (cycle actions2)
+battle :: (FightAction a1 fighter1, FightAction a2 fighter2) => fighter1 -> [a1] -> fighter2 -> [a2] -> (fighter1, fighter2)
+battle f1 [] f2 _ = (f1, f2)
+battle f1 _ f2 [] = (f1, f2)
+battle f1 actions1 f2 actions2
+    | isDead f1 = (dead f1, f2)
+    | isDead f2 = (f1, dead f2)
+    | otherwise = act (cycle actions1) f1 f2 (cycle actions2)
     where
-    actions1 = actions f1
-    actions2 = actions f2
-    fighterAct :: (Fighter fighter1 a1, Fighter fighter2 a2) => [a1] -> fighter1 -> fighter2 -> [a2] -> (fighter1, fighter2)
-    fighterAct (a:a1) fighter enemy a2
-        | (isDead newFighter) || (isDead newEnemy) = (newFighter, newEnemy)
-        | otherwise = enemyAct a2 newEnemy newFighter a1
-        where (newFighter, newEnemy) = perform a fighter enemy
-    enemyAct :: (Fighter fighter1 a1, Fighter fighter2 a2) => [a1] -> fighter1 -> fighter2 -> [a2] -> (fighter2, fighter1)
-    enemyAct (a:a2) fighter enemy a1
-        | (isDead newFighter) || (isDead newEnemy) = (newEnemy, newFighter)
-        | otherwise = fighterAct a1 newEnemy newFighter a2
-        where (newFighter, newEnemy) = perform a fighter enemy
+    act :: (FightAction a1 fighter1, FightAction a2 fighter2) => [a1] -> fighter1 -> fighter2 -> [a2] -> (fighter1, fighter2)
+    act (a:a1) fighter enemy (b:b1)
+        | (isDead fighterAfterRound1) || (isDead enemyAfterRound1) = (fighterAfterRound1, enemyAfterRound1)
+        | (isDead fighterAfterRound2) || (isDead enemyAfterRound2) = (fighterAfterRound2, enemyAfterRound2)
+        | otherwise = act a1 fighterAfterRound2 enemyAfterRound2 b1
+        where (fighterAfterRound1, enemyAfterRound1) = perform a fighter enemy
+              (enemyAfterRound2, fighterAfterRound2) = perform b enemyAfterRound1 fighterAfterRound1
 {-
 You did it! Now it is time to open pull request with your changes
 and summon @vrom911 and @chshersh for the review!
