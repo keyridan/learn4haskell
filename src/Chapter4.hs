@@ -664,11 +664,11 @@ Can you implement a monad version of AND, polymorphic over any monad?
 andMv1 :: (Monad m) => m Bool -> m Bool -> m Bool
 andMv1 a b = fmap (&&) a <*> b
 
-andM :: (Monad m) => m Bool -> m Bool -> m Bool
-andM a b = a >>= \x -> pure (x &&) <*> b
+andMv2 :: (Monad m) => m Bool -> m Bool -> m Bool
+andMv2 a b = a >>= \x -> pure (x &&) <*> b
 
-andMWithListProblem :: (Monad m) => m Bool -> m Bool -> m Bool
-andMWithListProblem a b = a >>= \x -> if x then b else (pure False)
+andM :: (Monad m) => m Bool -> m Bool -> m Bool
+andM a b = a >>= \x -> if x then b else (pure False)
 
 {- |
 =🐉= Task 9*: Final Dungeon Boss

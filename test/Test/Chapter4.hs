@@ -79,11 +79,9 @@ chapter4advanced = describe "Chapter4Advanced" $ do
         it "Nothing - Nothing" $ andM Nothing Nothing `shouldBe` Nothing
         it "Nothing - Just" $ andM Nothing (Just True) `shouldBe` Nothing
         it "Just True - Nothing" $ andM (Just True) Nothing `shouldBe` Nothing
-        it "Just False - Nothing" $ andM (Just False) Nothing `shouldBe` Nothing
+        it "Just False - Nothing" $ andM (Just False) Nothing `shouldBe` (Just False)
         it "Just - Just : False" $ andM (Just True) (Just False) `shouldBe` Just False
         it "Just - Just : True" $ andM (Just True) (Just True) `shouldBe` Just True
-        it "True and False for small list" $ (Cons False Empty) `andM` (Cons False(Cons False Empty)) `shouldBe` (Cons False(Cons False Empty))
-        it "True and False for list" $ (Cons True (Cons False Empty)) `andM` (Cons False(Cons True Empty)) `shouldBe` (Cons False(Cons True(Cons False (Cons False Empty))))
     
     describe "Task 8*: Before the Final Boss v1" $ do
         it "Nothing - Nothing" $ andMv1 Nothing Nothing `shouldBe` Nothing
@@ -93,13 +91,18 @@ chapter4advanced = describe "Chapter4Advanced" $ do
         it "Just - Just : False" $ andMv1 (Just True) (Just False) `shouldBe` Just False
         it "Just - Just : True" $ andMv1 (Just True) (Just True) `shouldBe` Just True
         it "True and False for small list" $ (Cons False Empty) `andMv1` (Cons False(Cons False Empty)) `shouldBe` (Cons False(Cons False Empty))
-        it "True and False for list" $ (Cons True (Cons False Empty)) `andMv1` (Cons False(Cons True Empty)) `shouldBe` (Cons False(Cons True(Cons False (Cons False Empty))))
-        
-{-  this version has a problem with List. Because of (pure False) in the implementation, it has fewer elements then it should have  
-    describe "Task 8*: Before the Final Boss andMWithListProblem" $ do
-        it "True and False for small list" $ (Cons False Empty) `andMWithListProblem` (Cons False(Cons False Empty)) `shouldBe` (Cons False(Cons False Empty))
-        it "True and False for list" $ (Cons True (Cons False Empty)) `andMWithListProblem` (Cons False(Cons True Empty)) `shouldBe` (Cons False(Cons True(Cons False (Cons False Empty))))
--}
+        it "True and False for list" $ (Cons True (Cons False Empty)) `andMv1` (Cons False(Cons True Empty)) `shouldBe` (Cons False(Cons True(Cons False (Cons False Empty))))    
+    
+    describe "Task 8*: Before the Final Boss v2" $ do
+        it "Nothing - Nothing" $ andMv2 Nothing Nothing `shouldBe` Nothing
+        it "Nothing - Just" $ andMv2 Nothing (Just True) `shouldBe` Nothing
+        it "Just True - Nothing" $ andMv2 (Just True) Nothing `shouldBe` Nothing
+        it "Just False - Nothing" $ andMv2 (Just False) Nothing `shouldBe` Nothing
+        it "Just - Just : False" $ andMv2 (Just True) (Just False) `shouldBe` Just False
+        it "Just - Just : True" $ andMv2 (Just True) (Just True) `shouldBe` Just True
+        it "True and False for small list" $ (Cons False Empty) `andMv2` (Cons False(Cons False Empty)) `shouldBe` (Cons False(Cons False Empty))
+        it "True and False for list" $ (Cons True (Cons False Empty)) `andMv2` (Cons False(Cons True Empty)) `shouldBe` (Cons False(Cons True(Cons False (Cons False Empty))))
+    
     describe "Task 9: Final Boss" $ do
         it "fmap Tree" $ (*2) `fmap` (Node 1 (Node 2 Leaf Leaf) (Node 3 Leaf Leaf)) `shouldBe` (Node 2 (Node 4 Leaf Leaf) (Node 6 Leaf Leaf))
         it "reverse Tree" $ reverseTree (Node 1 (Node 2 Leaf Leaf) (Node 3 Leaf Leaf)) `shouldBe` (Node 1 (Node 3 Leaf Leaf) (Node 2 Leaf Leaf))
